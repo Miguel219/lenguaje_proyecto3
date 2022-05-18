@@ -1,0 +1,4 @@
+while	var do
+if	13 switch (.20.)
+"13ABH"	'A'	'/n'
+CHR(16) CHR(16)..CHR(20)
