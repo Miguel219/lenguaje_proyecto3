@@ -1,6 +1,7 @@
 import string
 
 from jinja2 import Environment, FileSystemLoader
+from numpy import array
 from automaton.AFD import AFD
 
 from automaton.Functions import direct_afd_algorithm, afd_simulation
@@ -59,8 +60,14 @@ class Scanner:
             if reserved_word == 'IGNORE':
                 self.whiteSpace.append(self.processSet())
 
-            # Se revisa si ya se cambio de sección
+            # Se procesan las productions
+            if reserved_word == 'PRODUCTIONS':
+                self.processProduction()
+
+            # Se procesan los comentarios
             self.moveComments()
+
+            # Se revisa si ya se cambio de sección
             reserved_word = self.move(self.reserved_words_afd) or reserved_word
 
         r_array = []
@@ -125,9 +132,8 @@ class Scanner:
 
     def moveComments(self):
         while self.move(direct_afd_algorithm(replace_reserved_words('(.')), include_reserved_words=True):
-            if self.file_information[self.index:].find('.)') > 0:
-                self.index = (
-                    self.index + self.file_information[self.index:].find('.)') + 2)
+            while not self.move(direct_afd_algorithm(replace_reserved_words('.)')), include_reserved_words=True):
+                self.index += 1
 
     def processSetDecl(self):
         i = self.move(self.ident_afd)
@@ -227,6 +233,82 @@ class Scanner:
             else:
                 s = self.move(self.char_afd, include_reserved_words=True)
                 return s[1:-1]
+
+    def processProduction(self):
+        i = self.move(self.ident_afd)
+        print(i)
+        attributes = self.processAttributes()
+        print(attributes)
+        semAction = self.processSemAction()
+        print(semAction)
+        self.move(direct_afd_algorithm('='))
+        expression = self.processExpression()
+        print(expression)
+
+    def processAttributes(self):
+        if self.move(direct_afd_algorithm('<')):
+            attributes = ''
+            while not self.move(direct_afd_algorithm('>')):
+                attributes += self.file_information[self.index]
+                self.index += 1
+            return attributes
+
+    def processSemAction(self):
+        if self.move(direct_afd_algorithm(replace_reserved_words('(.')), include_reserved_words=True):
+            semAction = ''
+            while not self.move(direct_afd_algorithm(replace_reserved_words('.)')), include_reserved_words=True):
+                semAction += self.file_information[self.index]
+                self.index += 1
+            return semAction
+
+    def processExpression(self, afd_finisher=direct_afd_algorithm('.'), include_reserved_words=False, expression: list = list()):
+        while not self.move(afd_finisher, include_reserved_words=include_reserved_words):
+            # attribute
+            s = self.processAttributes()
+            if s:
+                expression.append(s)
+            # semAction
+            s = self.processSemAction()
+            if s:
+                expression.append(s)
+            # ()
+            s = self.move(direct_afd_algorithm(
+                replace_reserved_words('(')), include_reserved_words=True)
+            if s:
+                expression.append('(')
+                self.processExpression(direct_afd_algorithm(
+                    replace_reserved_words(')')), True, expression=expression)
+                expression.append(')')
+            # []
+            s = self.move(direct_afd_algorithm(
+                replace_reserved_words('[')), include_reserved_words=True)
+            if s:
+                expression.append('[')
+                self.processExpression(direct_afd_algorithm(
+                    replace_reserved_words(']')), True, expression=expression)
+                expression.append(']')
+            # {}
+            s = self.move(direct_afd_algorithm(
+                replace_reserved_words('{')), include_reserved_words=True)
+            if s:
+                expression.append('{')
+                self.processExpression(direct_afd_algorithm(
+                    replace_reserved_words('}')), True, expression=expression)
+                expression.append('}')
+            # |
+            s = self.move(direct_afd_algorithm(
+                replace_reserved_words('|')), include_reserved_words=True)
+            if s:
+                expression.append(s)
+            # symbol
+            s = self.move(self.str_afd, include_reserved_words=True)
+            if s:
+                expression.append(s)
+            # ident
+            s = self.move(self.ident_afd)
+            if s:
+                expression.append(s)
+        return expression
 
     def generateFile(self, r: string, tokens: list, ignore: string):
 
