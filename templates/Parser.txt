@@ -5,41 +5,15 @@ from automaton.Functions import direct_afd_algorithm, afd_simulation
 from automaton.configuration import replace_reserved_words
 
 
-class Scanner:
+class Parser:
     def __init__(self):
-        self.file_information = ''
-        self.index = 0
-
-        self.lexical_analyzer_name = 'Aritmetica'
-
-        self.r = '((A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z){(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)|(0|1|2|3|4|5|6|7|8|9)})#|((0|1|2|3|4|5|6|7|8|9){(0|1|2|3|4|5|6|7|8|9)})#'
-
-        self.tokens = [('ident', '(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z){(A|B|C|D|E|F|G|H|I|J|K|L|M|N|O|P|Q|R|S|T|U|V|W|X|Y|Z|a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z)|(0|1|2|3|4|5|6|7|8|9)}'), ('number', '(0|1|2|3|4|5|6|7|8|9){(0|1|2|3|4|5|6|7|8|9)}')]
-
-        self.ignore = None
-        
-        self.afd = direct_afd_algorithm(self.r, False)
-
-        self.ignore_afd = direct_afd_algorithm(
-            self.ignore, False) if self.ignore else None
-
         self.results = {}
-
-    def scan(self, file_name: string):
-        with open(file_name, "r") as file:
-            for line in file:
-                self.file_information += line
-
-        print('Resultados del analizador léxico "{}":'.format(
-            self.lexical_analyzer_name))
-
-        while self.index < len(self.file_information):
-            self.move()
-
-        print('{')
-        for (token, value) in self.results.values():
-            print('\t{}: {}'.format(token[0], repr(value)))
-        print('}')
+    
+    {% for production in productions %}
+    {{ production }}
+    {% endfor %}
+    
+    {% for term in code %}{{ term }}{% endfor %}
 
     def move(self):
         # Se avanzan los caracteres ignore
@@ -81,5 +55,5 @@ class Scanner:
                     repr(self.file_information[self.index]), self.index))
                 self.index += 1
 
-scanner = Scanner()
-scanner.scan("inputs/archivo.txt")
+parser = Parser()
+parser.parse("inputs/archivo.txt")

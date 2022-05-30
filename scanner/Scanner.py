@@ -5,6 +5,7 @@ from numpy import array
 from automaton.AFD import AFD
 
 from automaton.Functions import direct_afd_algorithm, afd_simulation
+from automaton.ProductionTree import ProductionTree
 from automaton.configuration import hash, replace_reserved_words
 
 from scanner.configuration import (
@@ -24,6 +25,7 @@ class Scanner:
         self.tokensExceptKeywords = []
         self.tokens = []
         self.whiteSpace = []
+        self.productions = []
 
         self.str_afd = direct_afd_algorithm(str)
         self.char_afd = direct_afd_algorithm(char)
@@ -62,7 +64,7 @@ class Scanner:
 
             # Se procesan las productions
             if reserved_word == 'PRODUCTIONS':
-                self.processProduction()
+                self.productions.append(self.processProduction())
 
             # Se procesan los comentarios
             self.moveComments()
@@ -82,7 +84,7 @@ class Scanner:
             r_array.append('|'.join(['({}){}'.format(self.variables[token], hash)
                                      for token in self.tokensExceptKeywords]))
 
-        return(
+        self.generateScanner(
             '|'.join(r_array),
             [
                 (token, self.variables[token])
@@ -91,6 +93,8 @@ class Scanner:
             '({}){}'.format('|'.join(self.whiteSpace), hash) if len(
                 self.whiteSpace) > 0 else None
         )
+
+        # self.generateParser()
 
     def move(self, afd: AFD, include_reserved_words=False, ignored_characters=False):
         # Se avanzan todos los caracteres ignorados
@@ -235,20 +239,24 @@ class Scanner:
                 return s[1:-1]
 
     def processProduction(self):
-        i = self.move(self.ident_afd)
-        print(i)
+        expression = list()
+        expression.append(('name', self.move(self.ident_afd)))
         attributes = self.processAttributes()
-        print(attributes)
+        expression.append(('attribute', attributes or ''))
         semAction = self.processSemAction()
-        print(semAction)
-        self.move(direct_afd_algorithm('='))
-        expression = self.processExpression()
+        if semAction:
+            expression.append(('semAction', semAction))
+        expression.append(self.move(direct_afd_algorithm('=')))
+        expression = self.processExpression(expression=list())
         print(expression)
+        pt = ProductionTree(r=expression)
+        pt.generate_tree()
+        return expression
 
     def processAttributes(self):
         if self.move(direct_afd_algorithm('<')):
             attributes = ''
-            while not self.move(direct_afd_algorithm('>')):
+            while not self.move(direct_afd_algorithm('>'), ignored_characters=True):
                 attributes += self.file_information[self.index]
                 self.index += 1
             return attributes
@@ -256,7 +264,7 @@ class Scanner:
     def processSemAction(self):
         if self.move(direct_afd_algorithm(replace_reserved_words('(.')), include_reserved_words=True):
             semAction = ''
-            while not self.move(direct_afd_algorithm(replace_reserved_words('.)')), include_reserved_words=True):
+            while not self.move(direct_afd_algorithm(replace_reserved_words('.)')), include_reserved_words=True, ignored_characters=True):
                 semAction += self.file_information[self.index]
                 self.index += 1
             return semAction
@@ -266,11 +274,11 @@ class Scanner:
             # attribute
             s = self.processAttributes()
             if s:
-                expression.append(s)
+                expression.append(('attribute', s))
             # semAction
             s = self.processSemAction()
             if s:
-                expression.append(s)
+                expression.append(('semAction', s))
             # ()
             s = self.move(direct_afd_algorithm(
                 replace_reserved_words('(')), include_reserved_words=True)
@@ -299,25 +307,62 @@ class Scanner:
             s = self.move(direct_afd_algorithm(
                 replace_reserved_words('|')), include_reserved_words=True)
             if s:
-                expression.append(s)
+                expression.append('|')
             # symbol
             s = self.move(self.str_afd, include_reserved_words=True)
             if s:
-                expression.append(s)
+                i = "{}".format(len(self.variables))
+                self.variables[i] = s[1:-1]
+                self.tokens.append(i)
+                expression.append(('token', i))
             # ident
             s = self.move(self.ident_afd)
             if s:
-                expression.append(s)
+                if s in [*self.tokens, *self.keywords, *self.tokensExceptKeywords]:
+                    expression.append(('token', s))
+                else:
+                    expression.append(('ident', s))
         return expression
 
-    def generateFile(self, r: string, tokens: list, ignore: string):
+    def generateScanner(self, r: string, tokens: list, ignore: string):
 
         env = Environment(loader=FileSystemLoader('templates'))
-        template = env.get_template('template.txt')
+        template = env.get_template('Scanner.txt')
         output_from_parsed_template = template.render(
             lexical_analyzer_name=repr(self.lexical_analyzer_name), r=repr(r), tokens=tokens, ignore=repr(ignore)
         )
 
-        with open('output.py', 'w', encoding='utf-8') as file:
+        with open('Scanner.py', 'w', encoding='utf-8') as file:
+            file.write(output_from_parsed_template)
+            file.close()
+
+    def generateParser(self):
+
+        code = []
+        for production in self.productions:
+            tab = 1
+            for term in production:
+                if term[0] == 'name':
+                    code.append('def {}'.format(term[1]))
+                elif term[0] == 'attribute':
+                    code.append('({})'.format(term[1]))
+                elif term[0] == '=':
+                    tab += 1
+                    code.append(':\n{}'.format('\t'*tab))
+                elif term[0] == '{':
+                    tab += 1
+                    code.append('while True:\n{}'.format('\t'*tab))
+                elif term[0] == '}':
+                    tab -= 1
+                    code.append('\n{}'.format('\t'*tab))
+            code.append('\n\n\t')
+
+        env = Environment(loader=FileSystemLoader('templates'))
+        template = env.get_template('Parser.txt')
+        output_from_parsed_template = template.render(
+            lexical_analyzer_name=repr(self.lexical_analyzer_name), productions=self.productions, code=code
+        )
+
+        with open('Parser.py', 'w', encoding='utf-8') as file:
             file.write(output_from_parsed_template)
             file.close()
