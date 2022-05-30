@@ -1,7 +1,7 @@
-from automaton.configuration import (alternative, closingGroup, closingIteration,
-                                     closingOption, dot, epsilon,
-                                     openingGroup, openingIteration, openingOption,
-                                     question, star, symbols)
+from automaton.configuration import (alternative, closingGroup,
+                                     closingIteration, closingOption, dot,
+                                     epsilon, openingGroup, openingIteration,
+                                     openingOption, question, star)
 from automaton.Node import Node
 
 
@@ -66,8 +66,8 @@ class ProductionTree:
     def process_dot(self, c):
         # Si el siguiente caracter es algun simbolo o un ( o { o [
         # y el anterior simbolo fue algun simbolo o un ) o } o ] o ? o *
-        if (c in [*symbols, openingGroup, openingIteration, openingOption] and
-                self.last_c in [*symbols, closingGroup, closingIteration, closingOption, question, star]):
+        if ((c in [openingGroup, openingIteration, openingOption] or type(c) is tuple) and
+                (self.last_c in [closingGroup, closingIteration, closingOption, question, star] or type(self.last_c) is tuple)):
             self.process(dot)
 
     # Procesa un operador
@@ -80,12 +80,12 @@ class ProductionTree:
     # Procesa un caracter
     def process(self, c):
         # Si es algun simbolo o un ( o { o [ se extraen todos los operadores de un solo simbolo ? o *
-        if c in [*symbols, openingGroup, openingIteration, openingOption]:
+        if c in [openingGroup, openingIteration, openingOption] or type(c) is tuple:
             while(not self.is_empty() and self.last() in [question, star]):
                 self.postfix.append(self.pop())
 
         # Si es algun simbolo
-        if c in symbols:
+        if type(c) is tuple:
             self.postfix.append(c)
 
         # Si es un ( o { o [
@@ -150,51 +150,26 @@ class ProductionTree:
             # Se guarda el id del nodo
             node.id = i
             self.nodes[i] = node.value
-            print(i, node.value)
 
-            # Se calcula el valor de nullable(n), firstpos(n) y lastpos(n)
-            if node.value == epsilon:
-                self.nullable[node.id] = True
-                self.firstpos[node.id] = []
-                self.lastpos[node.id] = []
-            elif node.value in symbols:
-                self.nullable[node.id] = False
-                self.firstpos[node.id] = [node.id]
-                self.lastpos[node.id] = [node.id]
+            # Se calcula el valor de nullable(n) y firstpos(n)
+            if type(node.value) is tuple:
+                if node.value[0] == 'semAction':
+                    self.nullable[node.id] = True
+                    self.firstpos[node.id] = []
+                else:
+                    self.nullable[node.id] = False
+                    self.firstpos[node.id] = [node.value]
             elif node.value == alternative:
                 self.nullable[node.id] = self.nullable[node.left.id] or self.nullable[node.right.id]
                 self.firstpos[node.id] = [
                     *self.firstpos[node.left.id], *self.firstpos[node.right.id]]
-                self.lastpos[node.id] = [
-                    *self.lastpos[node.left.id], *self.lastpos[node.right.id]]
             elif node.value == dot:
                 self.nullable[node.id] = self.nullable[node.left.id] and self.nullable[node.right.id]
                 self.firstpos[node.id] = [*self.firstpos[node.left.id], *self.firstpos[node.right.id]
                                           ] if self.nullable[node.left.id] else self.firstpos[node.left.id]
-                self.lastpos[node.id] = [*self.lastpos[node.left.id], *self.lastpos[node.right.id]
-                                         ] if self.nullable[node.right.id] else self.lastpos[node.right.id]
             elif node.value in [star, question]:
                 self.nullable[node.id] = True
                 self.firstpos[node.id] = self.firstpos[node.left.id]
-                self.lastpos[node.id] = self.lastpos[node.left.id]
-
-            # Se calcula el valor de nextpos(n)
-            if node.value == dot:
-                for lastpos in self.lastpos[node.left.id]:
-                    if lastpos in self.nextpos.keys():
-                        self.nextpos[lastpos] = list(dict.fromkeys([
-                            *self.nextpos[lastpos], *self.firstpos[node.right.id]]))
-                    else:
-                        self.nextpos[lastpos] = self.firstpos[node.right.id]
-                    self.nextpos[lastpos].sort()
-            elif node.value == star:
-                for lastpos in self.lastpos[node.left.id]:
-                    if lastpos in self.nextpos.keys():
-                        self.nextpos[lastpos] = list(dict.fromkeys([
-                            *self.nextpos[lastpos], *self.firstpos[node.left.id]]))
-                    else:
-                        self.nextpos[lastpos] = self.firstpos[node.left.id]
-                    self.nextpos[lastpos].sort()
 
             return i + 1
         return i
@@ -206,7 +181,7 @@ class ProductionTree:
 
         for c in self.postfix:
             # Si es algun simbolo
-            if c in symbols:
+            if type(c) is tuple:
                 self.push(Node(c))
             # Si es un operador
             else:

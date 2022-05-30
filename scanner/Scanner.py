@@ -1,15 +1,14 @@
 import string
 
-from jinja2 import Environment, FileSystemLoader
-from numpy import array
 from automaton.AFD import AFD
-
-from automaton.Functions import direct_afd_algorithm, afd_simulation
+from automaton.configuration import (alternative, dot, question,
+                                     replace_reserved_words, star, hash)
+from automaton.Functions import afd_simulation, direct_afd_algorithm
 from automaton.ProductionTree import ProductionTree
-from automaton.configuration import hash, replace_reserved_words
+from jinja2 import Environment, FileSystemLoader
 
-from scanner.configuration import (
-    Char, char, ident, str, ignored_characters, any)
+from scanner.configuration import (Char, any, char, ident, ignored_characters,
+                                   str)
 
 
 class Scanner:
@@ -26,6 +25,7 @@ class Scanner:
         self.tokens = []
         self.whiteSpace = []
         self.productions = []
+        self.productionsFirstpos = {}
 
         self.str_afd = direct_afd_algorithm(str)
         self.char_afd = direct_afd_algorithm(char)
@@ -94,7 +94,7 @@ class Scanner:
                 self.whiteSpace) > 0 else None
         )
 
-        # self.generateParser()
+        self.generateParser()
 
     def move(self, afd: AFD, include_reserved_words=False, ignored_characters=False):
         # Se avanzan todos los caracteres ignorados
@@ -240,18 +240,20 @@ class Scanner:
 
     def processProduction(self):
         expression = list()
-        expression.append(('name', self.move(self.ident_afd)))
+        name = self.move(self.ident_afd)
+        expression.append(('name', name))
         attributes = self.processAttributes()
-        expression.append(('attribute', attributes or ''))
+        expression.append(('attribute', 'self, {}'.format(
+            attributes) if attributes else 'self'))
         semAction = self.processSemAction()
         if semAction:
             expression.append(('semAction', semAction))
         expression.append(self.move(direct_afd_algorithm('=')))
-        expression = self.processExpression(expression=list())
-        print(expression)
-        pt = ProductionTree(r=expression)
+        r = self.processExpression(expression=list())
+        pt = ProductionTree(r=r)
         pt.generate_tree()
-        return expression
+        self.productionsFirstpos[name] = pt.firstpos[pt.tree.id]
+        return [*expression, ('tree', pt)]
 
     def processAttributes(self):
         if self.move(direct_afd_algorithm('<')):
@@ -314,12 +316,12 @@ class Scanner:
                 i = "{}".format(len(self.variables))
                 self.variables[i] = s[1:-1]
                 self.tokens.append(i)
-                expression.append(('token', i))
+                expression.append(('token', repr(i)))
             # ident
             s = self.move(self.ident_afd)
             if s:
                 if s in [*self.tokens, *self.keywords, *self.tokensExceptKeywords]:
-                    expression.append(('token', s))
+                    expression.append(('token', repr(s)))
                 else:
                     expression.append(('ident', s))
         return expression
@@ -338,31 +340,101 @@ class Scanner:
 
     def generateParser(self):
 
-        code = []
+        productions = list()
+        firstProduction = None
         for production in self.productions:
-            tab = 1
+            attribute = ''
             for term in production:
                 if term[0] == 'name':
-                    code.append('def {}'.format(term[1]))
+                    if not firstProduction:
+                        firstProduction = term[1]
+                    productions.append('def {}'.format(term[1]))
                 elif term[0] == 'attribute':
-                    code.append('({})'.format(term[1]))
+                    attribute = term[1]
+                    productions.append('({})'.format(term[1]))
                 elif term[0] == '=':
-                    tab += 1
-                    code.append(':\n{}'.format('\t'*tab))
-                elif term[0] == '{':
-                    tab += 1
-                    code.append('while True:\n{}'.format('\t'*tab))
-                elif term[0] == '}':
-                    tab -= 1
-                    code.append('\n{}'.format('\t'*tab))
-            code.append('\n\n\t')
+                    productions.append(':')
+                elif term[0] == 'tree':
+                    tree: ProductionTree = term[1]
+                    stack = self.processTree(tree, tree.tree, stack=list())
+                    productions = [
+                        *productions, *['\n{}{}'.format('    '*s[0], s[1]) for s in stack]]
+            if attribute != 'self':
+                productions.append('\n        return {}'.format(attribute[6:]))
+            productions.append('\n\n    ')
 
         env = Environment(loader=FileSystemLoader('templates'))
         template = env.get_template('Parser.txt')
         output_from_parsed_template = template.render(
-            lexical_analyzer_name=repr(self.lexical_analyzer_name), productions=self.productions, code=code
-        )
+            lexical_analyzer_name=repr(self.lexical_analyzer_name), productions=productions, firstProduction=firstProduction)
 
         with open('Parser.py', 'w', encoding='utf-8') as file:
             file.write(output_from_parsed_template)
             file.close()
+
+    def processTree(self, tree, node, stack: list = list(), tab: int = 2, alt=False):
+        if node:
+            if alt:
+                conditions = self.getConditions(tree, node)
+                stack.append(
+                    (tab, 'if {}:'.format(' or '.join(conditions))))
+                tab += 1
+                alt = False
+
+            if type(node.value) is tuple:
+                if node.value[0] == 'ident':
+                    stack.append(
+                        (tab, 'self.{}()'.format(node.value[1])))
+                elif node.value[0] == 'token':
+                    stack.append((tab,
+                                  'self.move({})'.format(node.value[1])))
+                elif node.value[0] == 'semAction':
+                    stack.append((tab,
+                                  '{}'.format(node.value[1])))
+                elif node.value[0] == 'attribute':
+                    stack[-1] = (stack[-1][0], '{} = {}({})'.format(
+                        node.value[1], stack[-1][1][:-2], node.value[1]))
+                else:
+                    stack.append((tab, '{}'.format(node.value)))
+            else:
+                if node.value == star:
+                    conditions = self.getConditions(tree, node)
+                    stack.append(
+                        (tab, 'while {}:'.format(' or '.join(conditions))))
+                    tab += 1
+                elif node.value == question:
+                    conditions = self.getConditions(tree, node)
+                    stack.append(
+                        (tab, 'if {}:'.format(' or '.join(conditions))))
+                    tab += 1
+                elif node.value == alternative:
+                    alt = True
+
+            self.processTree(tree, node.left, stack=stack,
+                             tab=tab, alt=alt)
+            self.processTree(tree, node.right, stack=stack,
+                             tab=tab, alt=alt)
+
+        return stack
+
+    def getConditions(self, tree, node):
+        conditions = set()
+        for key, value in tree.firstpos[node.id]:
+            if key == 'token':
+                conditions.add(
+                    'self.lookAheadToken[0] == {}'.format(value))
+            elif key == 'ident':
+                conditions = self.findFirstPos(
+                    value, [value], conditions)
+        return conditions
+
+    def findFirstPos(self, ident, visited: list = list(), firstpos: set = set()):
+        for key, value in self.productionsFirstpos[ident]:
+            if key == 'token':
+                firstpos.add(
+                    'self.lookAheadToken[0] == {}'.format(value))
+            elif key == 'ident' and value not in visited:
+                firstpos = self.findFirstPos(
+                    value, [*visited, value], firstpos)
+
+        return firstpos

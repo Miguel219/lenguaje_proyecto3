@@ -41,6 +41,8 @@ class Scanner:
             print('\t{}: {}'.format(token[0], repr(value)))
         print('}')
 
+        return [(token[0], value) for (token, value) in self.results.values()]
+
     def move(self):
         # Se avanzan los caracteres ignore
         while (self.ignore_afd and
@@ -80,6 +82,3 @@ class Scanner:
                 print('Error léxico el caracter {} en la posición: {}'.format(
                     repr(self.file_information[self.index]), self.index))
                 self.index += 1
-
-scanner = Scanner()
-scanner.scan("inputs/archivo.txt")

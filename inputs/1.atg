@@ -20,24 +20,24 @@ Stat = 							(.value = 0.)
 	Expression<value>		(.print(value).)
 	.
 
-Expression<result: int> =		(.result1, result2 = 0.)
+Expression<result> =		(.result1, result2 = 0, 0.)
 	Term<result1>
 	{    "+"Term<result2>		(.result1 += result2.)
 	   | "-"Term<result2>		(.result1 -= result2.)
 	}							(.result = result1.)
 	.
 
-Term<result: int>=				(.result1, result2 = 0.)
+Term<result>=				(.result1, result2 = 0, 0.)
 	Factor<result1>
 	{    "*"Factor<result2>	(.result1 *= result2.)
 	   | "/"Factor<result2>	(.result1 /= result2.)
 	}							(.result = result1.)
 	.
 	
-Factor<result: int> =	(.signo = 1.)
+Factor<result> =	(.signo = 1.)
 	["-"(.signo = -1.)]
 	( Number<result> | "("Expression<result>")") (.result *= signo.).
 	
-Number<result: int> =  number (.result = int(lastToken.value).).
+Number<result> =  number (.result = int(self.lastToken[1]).).
 
 END Aritmetica
