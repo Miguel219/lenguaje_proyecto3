@@ -1,10 +1,4 @@
 
-import string
-
-from automaton.Functions import direct_afd_algorithm, afd_simulation
-from automaton.configuration import replace_reserved_words
-
-
 class Parser:
     def __init__(self, tokens):
         self.i = 0
@@ -13,7 +7,7 @@ class Parser:
         self.lastToken = None
     
     def Expr(self):
-        while self.lookAheadToken[0] == '13' or self.lookAheadToken[0] == '12' or self.lookAheadToken[0] == 'number':
+        while self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == '12' or self.lookAheadToken[0] == '13':
             self.Stat()
             self.move('6')
         self.move('7')
@@ -41,7 +35,7 @@ class Parser:
     def Term(self, result):
         result1, result2 = 0, 0
         result1 = self.Factor(result1)
-        while self.lookAheadToken[0] == '11' or self.lookAheadToken[0] == '10':
+        while self.lookAheadToken[0] == '10' or self.lookAheadToken[0] == '11':
             if self.lookAheadToken[0] == '10':
                 self.move('10')
                 result2 = self.Factor(result2)

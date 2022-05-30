@@ -30,16 +30,8 @@ class Scanner:
             for line in file:
                 self.file_information += line
 
-        print('Resultados del analizador léxico "{}":'.format(
-            self.lexical_analyzer_name))
-
         while self.index < len(self.file_information):
             self.move()
-
-        print('{')
-        for (token, value) in self.results.values():
-            print('\t{}: {}'.format(token[0], repr(value)))
-        print('}')
 
         return [(token[0], value) for (token, value) in self.results.values()]
 

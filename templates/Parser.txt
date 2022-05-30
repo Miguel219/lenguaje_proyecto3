@@ -1,10 +1,4 @@
 
-import string
-
-from automaton.Functions import direct_afd_algorithm, afd_simulation
-from automaton.configuration import replace_reserved_words
-
-
 class Parser:
     def __init__(self, tokens):
         self.i = 0
