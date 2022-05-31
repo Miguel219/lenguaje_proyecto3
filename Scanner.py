@@ -33,7 +33,7 @@ class Scanner:
         while self.index < len(self.file_information):
             self.move()
 
-        return [(token[0], value) for (token, value) in self.results.values()]
+        return [(token[0], value, key) for (key, (token, value)) in self.results.items()]
 
     def move(self):
         # Se avanzan los caracteres ignore
@@ -71,6 +71,6 @@ class Scanner:
                 )
         else:
             if self.index < len(self.file_information):
-                print('Error léxico el caracter {} en la posición: {}'.format(
+                print('Error léxico: los caracteres {} en la posición: {}'.format(
                     repr(self.file_information[self.index]), self.index))
                 self.index += 1

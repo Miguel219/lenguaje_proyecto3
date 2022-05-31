@@ -14,8 +14,14 @@ class Parser:
             self.i += 1
             if self.i < len(self.tokens):
                 self.lookAheadToken = self.tokens[self.i]
+        else:
+            self.printError()
 
     def parse(self):
         self.i = 0
         self.lookAheadToken = self.tokens[self.i]
         self.{{ firstProduction }}()
+    
+    def printError(self):
+        print('Error sintáctico: el caracter {} en la posición: {}'.format(
+            repr(self.lookAheadToken[1]), self.lookAheadToken[2]))

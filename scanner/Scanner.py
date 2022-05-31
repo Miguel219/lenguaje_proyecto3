@@ -372,14 +372,14 @@ class Scanner:
             file.write(output_from_parsed_template)
             file.close()
 
-    def processTree(self, tree, node, stack: list = list(), tab: int = 2, alt=False):
+    def processTree(self, tree, node, stack: list = list(), tab: int = 2, alt=None):
         if node:
             if alt:
                 conditions = self.getConditions(tree, node)
                 stack.append(
-                    (tab, 'if {}:'.format(' or '.join(conditions))))
+                    (tab, '{} {}:'.format(alt, ' or '.join(conditions))))
                 tab += 1
-                alt = False
+                alt = None
 
             if type(node.value) is tuple:
                 if node.value[0] == 'ident':
@@ -411,9 +411,12 @@ class Scanner:
                     alt = True
 
             self.processTree(tree, node.left, stack=stack,
-                             tab=tab, alt=alt)
+                             tab=tab, alt='if' if alt else alt)
             self.processTree(tree, node.right, stack=stack,
-                             tab=tab, alt=alt)
+                             tab=tab, alt='elif' if alt else alt)
+            if alt:
+                stack.append((tab, 'else:'))
+                stack.append((tab + 1, 'self.printError()'))
 
         return stack
 

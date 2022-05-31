@@ -7,7 +7,7 @@ class Parser:
         self.lastToken = None
     
     def Expr(self):
-        while self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == '12' or self.lookAheadToken[0] == '13':
+        while self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == '13' or self.lookAheadToken[0] == '12':
             self.Stat()
             self.move('6')
         self.move('7')
@@ -25,25 +25,29 @@ class Parser:
                 self.move('8')
                 result2 = self.Term(result2)
                 result1 += result2
-            if self.lookAheadToken[0] == '9':
+            elif self.lookAheadToken[0] == '9':
                 self.move('9')
                 result2 = self.Term(result2)
                 result1 -= result2
+            else:
+                self.printError()
         result = result1
         return result
 
     def Term(self, result):
         result1, result2 = 0, 0
         result1 = self.Factor(result1)
-        while self.lookAheadToken[0] == '10' or self.lookAheadToken[0] == '11':
+        while self.lookAheadToken[0] == '11' or self.lookAheadToken[0] == '10':
             if self.lookAheadToken[0] == '10':
                 self.move('10')
                 result2 = self.Factor(result2)
                 result1 *= result2
-            if self.lookAheadToken[0] == '11':
+            elif self.lookAheadToken[0] == '11':
                 self.move('11')
                 result2 = self.Factor(result2)
                 result1 /= result2
+            else:
+                self.printError()
         result = result1
         return result
 
@@ -54,10 +58,12 @@ class Parser:
             signo = -1
         if self.lookAheadToken[0] == 'number':
             result = self.Number(result)
-        if self.lookAheadToken[0] == '13':
+        elif self.lookAheadToken[0] == '13':
             self.move('13')
             result = self.Expression(result)
             self.move('14')
+        else:
+            self.printError()
         result *= signo
         return result
 
@@ -72,8 +78,14 @@ class Parser:
             self.i += 1
             if self.i < len(self.tokens):
                 self.lookAheadToken = self.tokens[self.i]
+        else:
+            self.printError()
 
     def parse(self):
         self.i = 0
         self.lookAheadToken = self.tokens[self.i]
         self.Expr()
+    
+    def printError(self):
+        print('Error sintáctico: el caracter {} en la posición: {}'.format(
+            repr(self.lookAheadToken[1]), self.lookAheadToken[2]))
