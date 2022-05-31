@@ -156,20 +156,45 @@ class ProductionTree:
                 if node.value[0] == 'semAction':
                     self.nullable[node.id] = True
                     self.firstpos[node.id] = []
+                    self.lastpos[node.id] = []
                 else:
                     self.nullable[node.id] = False
-                    self.firstpos[node.id] = [node.value]
+                    self.firstpos[node.id] = [node.id]
+                    self.lastpos[node.id] = [node.id]
             elif node.value == alternative:
                 self.nullable[node.id] = self.nullable[node.left.id] or self.nullable[node.right.id]
                 self.firstpos[node.id] = [
                     *self.firstpos[node.left.id], *self.firstpos[node.right.id]]
+                self.lastpos[node.id] = [
+                    *self.lastpos[node.left.id], *self.lastpos[node.right.id]]
             elif node.value == dot:
                 self.nullable[node.id] = self.nullable[node.left.id] and self.nullable[node.right.id]
                 self.firstpos[node.id] = [*self.firstpos[node.left.id], *self.firstpos[node.right.id]
                                           ] if self.nullable[node.left.id] else self.firstpos[node.left.id]
+                self.lastpos[node.id] = [*self.lastpos[node.left.id], *self.lastpos[node.right.id]
+                                         ] if self.nullable[node.right.id] else self.lastpos[node.right.id]
             elif node.value in [star, question]:
                 self.nullable[node.id] = True
                 self.firstpos[node.id] = self.firstpos[node.left.id]
+                self.lastpos[node.id] = self.lastpos[node.left.id]
+
+            # Se calcula el valor de nextpos(n)
+            if node.value == dot:
+                for lastpos in self.lastpos[node.left.id]:
+                    if lastpos in self.nextpos.keys():
+                        self.nextpos[lastpos] = list(dict.fromkeys([
+                            *self.nextpos[lastpos], *self.firstpos[node.right.id]]))
+                    else:
+                        self.nextpos[lastpos] = self.firstpos[node.right.id]
+                    self.nextpos[lastpos].sort()
+            elif node.value == star:
+                for lastpos in self.lastpos[node.left.id]:
+                    if lastpos in self.nextpos.keys():
+                        self.nextpos[lastpos] = list(dict.fromkeys([
+                            *self.nextpos[lastpos], *self.firstpos[node.left.id]]))
+                    else:
+                        self.nextpos[lastpos] = self.firstpos[node.left.id]
+                    self.nextpos[lastpos].sort()
 
             return i + 1
         return i

@@ -8,7 +8,7 @@ digit= "0123456789".
 cr = CHR(13).
 lf = CHR(10).
 tab = CHR(9).
-ignore = cr+lf+tab.
+ignore = cr+lf+tab+CHR(32).
 comillas = CHR(34).
 stringletter = ANY-comillas-ignore.
 
@@ -28,33 +28,32 @@ nontoken = MyANY.
 startcode ="(.".
 endcode=".)".
 
-IGNORE SET ignore
+IGNORE ignore
 
 PRODUCTIONS
 
-MyCOCOR= 				(.string CompilerName = new string(' ',0);
-					  string EndName = new string(' ',0);.)
+MyCOCOR= 				(.CompilerName, EndName = '', ''.)
 	"COMPILER" 
-	Ident<ref CompilerName>		(.System.Console.WriteLine("Nombre Inicial del Compilador:{0}",CompilerName);.) 
+	Ident<CompilerName>		(.print("Nombre Inicial del Compilador:{}".format(CompilerName)).) 
 	[Codigo]
 	Body
-	"END" Ident<ref EndName>	(.System.Console.WriteLine("Nombre Final del Compilador:{0}",EndName);.) 
+	"END" Ident<EndName>	(.print("Nombre Final del Compilador:{}".format(EndName)).) 
 .
 
 Body = 
 	Characters 
 	[Keywords] 
 	Tokens 
+	[Ignore] 
 	Productions  	
 .
 
 
-Characters =				(.string CharName = new string(' ',0);
-					   int Counter = 0;.)
+Characters =				(.CharName, Counter = '', 0.)
 
-	"CHARACTERS"			(.System.Console.WriteLine("LEYENDO CHARACTERS");.)
+	"CHARACTERS"			(.print("LEYENDO CHARACTERS").)
 	{
-		Ident<ref CharName>	(.Counter++;System.Console.WriteLine("Char Set {0}: {1}",Counter,CharName);.)
+		Ident<CharName>	(.Counter += 1.)(.print("Char Set {}: {}".format(Counter, CharName)).)
 		"="
 		CharSet			
 		{
@@ -66,16 +65,14 @@ Characters =				(.string CharName = new string(' ',0);
 	}
 .
 			 
-Keywords = 				(.string KeyName = new string(' ',0);
-					  string StringValue = new string(' ',0);
-    					  int Counter = 0;.)
+Keywords = 				(.KeyName, StringValue, Counter = '', '', 0.)
 
-	"KEYWORDS"			(.System.Console.WriteLine("LEYENDO KEYWORDS");.)
+	"KEYWORDS"			(.print("LEYENDO KEYWORDS").)
 	{
 		
-		Ident<ref KeyName>	(.Counter++;System.Console.WriteLine("KeyWord {0}: {1}",Counter,KeyName);.)
+		Ident<KeyName>	(.Counter += 1.)(.print("KeyWord {}: {}".format(Counter, KeyName)).)
 		"="
-		String<ref StringValue>
+		String<StringValue>
 		"."
 
 	}
@@ -83,12 +80,11 @@ Keywords = 				(.string KeyName = new string(' ',0);
 .
 
 
-Tokens =				(.string TokenName = new string(' ',0);
-					  int Counter = 0;.)
+Tokens =				(.TokenName, Counter = '', 0.)
 	
-	"TOKENS"			(.System.Console.WriteLine("LEYENDO TOKENS");.)
+	"TOKENS"			(.print("LEYENDO TOKENS").)
 	{
-		Ident<ref TokenName>	(.Counter++;System.Console.WriteLine("Token {0}: {1}",Counter,TokenName);.)
+		Ident<TokenName>	(.Counter += 1.)(.print("Token {}: {}".format(Counter, TokenName)).)
 		"="
 		TokenExpr
 		[ExceptKeyword]
@@ -98,16 +94,26 @@ Tokens =				(.string TokenName = new string(' ',0);
 
 .
 
+Ignore =				
 
-Productions = 				(.int Counter = 0;.)
+	"IGNORE"			(.print("LEYENDO IGNORE").)
+		CharSet			
+		{
+			"+"CharSet
+			|
+			"-"CharSet
+		}
+.
+
+Productions = 				(.Counter = 0.)
 	
-	"PRODUCTIONS"			(.string ProdName = new string(' ',0);
-					  System.Console.WriteLine("LEYENDO PRODUCTIONS");.)
+	"PRODUCTIONS"			(.ProdName = ''.)
+					  (.print("LEYENDO PRODUCTIONS").)
 	{
-		Ident<ref ProdName>	(.Counter++;System.Console.WriteLine("Production {0}: {1}",Counter,ProdName);.)
+		Ident<ProdName>	(.Counter += 1.)(.print("Production {}: {}".format(Counter, ProdName)).)
 		[Atributos]
 		"="
-		[Codigo]
+		{Codigo}
 		ProductionExpr
 		"."
 
@@ -145,19 +151,18 @@ ProdFactor =
 	|
 	"{"ProductionExpr"}"
 	)
-	[Codigo]
+	{Codigo}
 .
 
 
 
-SymbolProd =			(.string SV = new string(' ',0);
-				  string IN = new string(' ',0);.)
+SymbolProd =			(.SV, IN = '', ''.)
 	(
-	String<ref SV>		(.System.Console.WriteLine("String en Production: {0}",SV);.)
+	String<SV>		(.print("String en Production: {}".format(SV)).)
 	|
 	char
 	|
-	Ident<ref IN>		(.System.Console.WriteLine("Identificador en Production: {0}",IN);.)
+	Ident<IN>		(.print("Identificador en Production: {}".format(IN)).)
 	[Atributos] 
 	)
 .
@@ -203,29 +208,25 @@ TokenFactor=
 	)
 .
 
-SimbolToken =			(.string IdentName = new string(' ',0);
-				  string StringValue = new string(' ',0);.)		
+SimbolToken =			(.IdentName, StringValue = '', ''.)		
 	(
-	String<ref StringValue>
+	String<StringValue>
 	|
 	char
 	|
-	Ident<ref IdentName>	(.System.Console.WriteLine("Identificador en Token: {0}",IdentName);.)
+	Ident<IdentName>	(.print("Identificador en Token: {}".format(IdentName)).)
 	)
 .
 
 
 
-CharSet= 			(.string IdentName = new string(' ',0);
-				  string StringValue = new string(' ',0);.)	
+CharSet= 			(.IdentName, StringValue = '', ''.)	
 	(
-	String<ref StringValue>
+	String<StringValue>
 	|
 	Char
 	|
-	"ANY"
-	|
-	Ident<ref IdentName>	(.System.Console.WriteLine("Identificador en CharSet: {0}",IdentName);.)
+	Ident<IdentName>	(.print("Identificador en CharSet: {}".format(IdentName)).)
 	)
 	
 .
@@ -242,12 +243,12 @@ Char=
 .
 
 
-String<ref string S>=
-	string		(.S = LastToken.Value;.)
+String<S>=
+	string		(.S = self.lastToken[1].)
 .
 
-Ident<ref string S>=
-	ident		(.S = LastToken.Value;.)
+Ident<S>=
+	ident		(.S = self.lastToken[1].)
 .
 
 

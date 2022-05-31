@@ -5,9 +5,16 @@ class Parser:
         self.tokens = tokens
         self.lookAheadToken = None
         self.lastToken = None
+        self.errors = list()
     
     {% for term in productions %}{{ term }}{% endfor -%}
 
+    def ANY(self):
+        self.lastToken = self.lookAheadToken
+        self.i += 1
+        if self.i < len(self.tokens):
+            self.lookAheadToken = self.tokens[self.i]
+   
     def move(self, token):
         if self.lookAheadToken[0] == token:
             self.lastToken = self.lookAheadToken
@@ -23,5 +30,7 @@ class Parser:
         self.{{ firstProduction }}()
     
     def printError(self):
-        print('Error sintáctico: los caracteres {} en la posición: {}'.format(
-            repr(self.lookAheadToken[1]), self.lookAheadToken[2]))
+        if(self.lookAheadToken[2] not in self.errors):
+            print('Error sintáctico: los caracteres {} en la posición: {}'.format(
+                repr(self.lookAheadToken[1]), self.lookAheadToken[2]))
+            self.errors.append(self.lookAheadToken[2])

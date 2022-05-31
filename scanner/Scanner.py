@@ -252,7 +252,8 @@ class Scanner:
         r = self.processExpression(expression=list())
         pt = ProductionTree(r=r)
         pt.generate_tree()
-        self.productionsFirstpos[name] = pt.firstpos[pt.tree.id]
+        self.productionsFirstpos[name] = [pt.search_by_id(
+            nodeId) for nodeId in pt.firstpos[pt.tree.id]]
         return [*expression, ('tree', pt)]
 
     def processAttributes(self):
@@ -277,53 +278,68 @@ class Scanner:
             s = self.processAttributes()
             if s:
                 expression.append(('attribute', s))
-            # semAction
-            s = self.processSemAction()
-            if s:
-                expression.append(('semAction', s))
-            # ()
-            s = self.move(direct_afd_algorithm(
-                replace_reserved_words('(')), include_reserved_words=True)
-            if s:
-                expression.append('(')
-                self.processExpression(direct_afd_algorithm(
-                    replace_reserved_words(')')), True, expression=expression)
-                expression.append(')')
-            # []
-            s = self.move(direct_afd_algorithm(
-                replace_reserved_words('[')), include_reserved_words=True)
-            if s:
-                expression.append('[')
-                self.processExpression(direct_afd_algorithm(
-                    replace_reserved_words(']')), True, expression=expression)
-                expression.append(']')
-            # {}
-            s = self.move(direct_afd_algorithm(
-                replace_reserved_words('{')), include_reserved_words=True)
-            if s:
-                expression.append('{')
-                self.processExpression(direct_afd_algorithm(
-                    replace_reserved_words('}')), True, expression=expression)
-                expression.append('}')
-            # |
-            s = self.move(direct_afd_algorithm(
-                replace_reserved_words('|')), include_reserved_words=True)
-            if s:
-                expression.append('|')
-            # symbol
-            s = self.move(self.str_afd, include_reserved_words=True)
-            if s:
-                i = "{}".format(len(self.variables))
-                self.variables[i] = s[1:-1]
-                self.tokens.append(i)
-                expression.append(('token', repr(i)))
-            # ident
-            s = self.move(self.ident_afd)
-            if s:
-                if s in [*self.tokens, *self.keywords, *self.tokensExceptKeywords]:
-                    expression.append(('token', repr(s)))
+            else:
+                # semAction
+                s = self.processSemAction()
+                if s:
+                    expression.append(('semAction', s))
                 else:
-                    expression.append(('ident', s))
+                    # ()
+                    s = self.move(direct_afd_algorithm(
+                        replace_reserved_words('(')), include_reserved_words=True)
+                    if s:
+                        expression.append('(')
+                        self.processExpression(direct_afd_algorithm(
+                            replace_reserved_words(')')), True, expression=expression)
+                        expression.append(')')
+                    else:
+                        # []
+                        s = self.move(direct_afd_algorithm(
+                            replace_reserved_words('[')), include_reserved_words=True)
+                        if s:
+                            expression.append('[')
+                            self.processExpression(direct_afd_algorithm(
+                                replace_reserved_words(']')), True, expression=expression)
+                            expression.append(']')
+                        else:
+                            # {}
+                            s = self.move(direct_afd_algorithm(
+                                replace_reserved_words('{')), include_reserved_words=True)
+                            if s:
+                                expression.append('{')
+                                self.processExpression(direct_afd_algorithm(
+                                    replace_reserved_words('}')), True, expression=expression)
+                                expression.append('}')
+                            else:
+                                # |
+                                s = self.move(direct_afd_algorithm(
+                                    replace_reserved_words('|')), include_reserved_words=True)
+                                if s:
+                                    expression.append('|')
+                                else:
+                                    # symbol
+                                    s = self.move(
+                                        self.str_afd, include_reserved_words=True)
+                                    if s:
+                                        i = None
+                                        for key, value in self.variables.items():
+                                            if value == s[1:-1]:
+                                                i = key
+                                        if i is None:
+                                            i = "{}".format(
+                                                len(self.variables))
+                                            self.variables[i] = s[1:-1]
+                                            self.tokens = [i, *self.tokens]
+                                        expression.append(('token', repr(i)))
+                                    else:
+                                        # ident
+                                        s = self.move(self.ident_afd)
+                                        if s:
+                                            if s in [*self.tokens, *self.keywords, *self.tokensExceptKeywords]:
+                                                expression.append(
+                                                    ('token', repr(s)))
+                                            else:
+                                                expression.append(('ident', s))
         return expression
 
     def generateScanner(self, r: string, tokens: list, ignore: string):
@@ -422,13 +438,19 @@ class Scanner:
 
     def getConditions(self, tree, node):
         conditions = set()
-        for key, value in tree.firstpos[node.id]:
+        for key, value in [tree.search_by_id(nodeId) for nodeId in tree.firstpos[node.id]]:
             if key == 'token':
                 conditions.add(
                     'self.lookAheadToken[0] == {}'.format(value))
             elif key == 'ident':
-                conditions = self.findFirstPos(
-                    value, [value], conditions)
+                if value == 'ANY':
+                    for node in [tree.search_by_id(nodeId) for nodeId in tree.nextpos[node.left.id]]:
+                        if node[1] != 'ANY':
+                            conditions.add(
+                                'self.lookAheadToken[0] != {}'.format(node[1]))
+                else:
+                    conditions = self.findFirstPos(
+                        value, [value], conditions)
         return conditions
 
     def findFirstPos(self, ident, visited: list = list(), firstpos: set = set()):
