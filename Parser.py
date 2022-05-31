@@ -7,26 +7,30 @@ class Parser:
         self.lastToken = None
     
     def Expr(self):
-        while self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == '13' or self.lookAheadToken[0] == '12':
+        while self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == '14' or self.lookAheadToken[0] == 'decnumber' or self.lookAheadToken[0] == '13':
             self.Stat()
-            self.move('6')
-        self.move('7')
+            self.move('7')
+            while self.lookAheadToken[0] == 'white':
+                self.move('white')
+        while self.lookAheadToken[0] == 'white':
+            self.move('white')
+        self.move('8')
 
     def Stat(self):
         value = 0
         value = self.Expression(value)
-        print(value)
+        print("Resultado: {}".format(value))
 
     def Expression(self, result):
         result1, result2 = 0, 0
         result1 = self.Term(result1)
-        while self.lookAheadToken[0] == '9' or self.lookAheadToken[0] == '8':
-            if self.lookAheadToken[0] == '8':
-                self.move('8')
+        while self.lookAheadToken[0] == '10' or self.lookAheadToken[0] == '9':
+            if self.lookAheadToken[0] == '9':
+                self.move('9')
                 result2 = self.Term(result2)
                 result1 += result2
-            elif self.lookAheadToken[0] == '9':
-                self.move('9')
+            elif self.lookAheadToken[0] == '10':
+                self.move('10')
                 result2 = self.Term(result2)
                 result1 -= result2
             else:
@@ -37,13 +41,13 @@ class Parser:
     def Term(self, result):
         result1, result2 = 0, 0
         result1 = self.Factor(result1)
-        while self.lookAheadToken[0] == '11' or self.lookAheadToken[0] == '10':
-            if self.lookAheadToken[0] == '10':
-                self.move('10')
+        while self.lookAheadToken[0] == '12' or self.lookAheadToken[0] == '11':
+            if self.lookAheadToken[0] == '11':
+                self.move('11')
                 result2 = self.Factor(result2)
                 result1 *= result2
-            elif self.lookAheadToken[0] == '11':
-                self.move('11')
+            elif self.lookAheadToken[0] == '12':
+                self.move('12')
                 result2 = self.Factor(result2)
                 result1 /= result2
             else:
@@ -52,24 +56,29 @@ class Parser:
         return result
 
     def Factor(self, result):
-        signo = 1
-        if self.lookAheadToken[0] == '12':
-            self.move('12')
-            signo = -1
-        if self.lookAheadToken[0] == 'number':
-            result = self.Number(result)
-        elif self.lookAheadToken[0] == '13':
+        sign = 1
+        if self.lookAheadToken[0] == '13':
             self.move('13')
-            result = self.Expression(result)
+            sign = -1
+        if self.lookAheadToken[0] == 'number' or self.lookAheadToken[0] == 'decnumber':
+            result = self.Number(result)
+        elif self.lookAheadToken[0] == '14':
             self.move('14')
+            result = self.Expression(result)
+            self.move('15')
         else:
             self.printError()
-        result *= signo
+        result *= sign
         return result
 
     def Number(self, result):
-        self.move('number')
-        result = int(self.lastToken[1])
+        if self.lookAheadToken[0] == 'number':
+            self.move('number')
+        elif self.lookAheadToken[0] == 'decnumber':
+            self.move('decnumber')
+        else:
+            self.printError()
+        result = float(self.lastToken[1])
         return result
 
     def move(self, token):
@@ -87,5 +96,5 @@ class Parser:
         self.Expr()
     
     def printError(self):
-        print('Error sintáctico: el caracter {} en la posición: {}'.format(
+        print('Error sintáctico: los caracteres {} en la posición: {}'.format(
             repr(self.lookAheadToken[1]), self.lookAheadToken[2]))

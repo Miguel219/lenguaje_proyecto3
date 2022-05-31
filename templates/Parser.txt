@@ -23,5 +23,5 @@ class Parser:
         self.{{ firstProduction }}()
     
     def printError(self):
-        print('Error sintáctico: el caracter {} en la posición: {}'.format(
+        print('Error sintáctico: los caracteres {} en la posición: {}'.format(
             repr(self.lookAheadToken[1]), self.lookAheadToken[2]))

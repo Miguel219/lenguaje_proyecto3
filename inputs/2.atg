@@ -46,6 +46,6 @@ Factor<result> =		(.sign = 1.)
 
 Number<result> =	
 	(number				
-	|decnumber)(.result = double(self.lastToken[1]).)
+	|decnumber)(.result = float(self.lastToken[1]).)
 	.
 END Double
