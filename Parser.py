@@ -38,7 +38,7 @@ class Parser:
             print("Char Set {}: {}".format(Counter, CharName))
             self.move('21')
             self.CharSet()
-            while self.lookAheadToken[0] == '23' or self.lookAheadToken[0] == '22':
+            while self.lookAheadToken[0] == '22' or self.lookAheadToken[0] == '23':
                 if self.lookAheadToken[0] == '22':
                     self.move('22')
                     self.CharSet()
@@ -79,7 +79,7 @@ class Parser:
         self.move('27')
         print("LEYENDO IGNORE")
         self.CharSet()
-        while self.lookAheadToken[0] == '23' or self.lookAheadToken[0] == '22':
+        while self.lookAheadToken[0] == '22' or self.lookAheadToken[0] == '23':
             if self.lookAheadToken[0] == '22':
                 self.move('22')
                 self.CharSet()
@@ -118,13 +118,13 @@ class Parser:
 
     def ProdTerm(self):
         self.ProdFactor()
-        while self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '35' or self.lookAheadToken[0] == '33':
+        while self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '35' or self.lookAheadToken[0] == '33' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string':
             self.ProdFactor()
 
     def ProdFactor(self):
-        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '33':
-            if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'ident':
-                if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'ident':
+        if self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '33' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string':
+            if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '31':
+                if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident':
                     self.SymbolProd()
                 elif self.lookAheadToken[0] == '31':
                     self.move('31')
@@ -149,7 +149,7 @@ class Parser:
 
     def SymbolProd(self):
         SV, IN = '', ''
-        if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'char':
+        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string':
             if self.lookAheadToken[0] == 'string':
                 SV = self.String(SV)
                 print("String en Production: {}".format(SV))
@@ -185,13 +185,13 @@ class Parser:
 
     def TokenTerm(self):
         self.TokenFactor()
-        while self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '35' or self.lookAheadToken[0] == '33':
+        while self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '35' or self.lookAheadToken[0] == '33' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string':
             self.TokenFactor()
 
     def TokenFactor(self):
-        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '33':
-            if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'ident':
-                if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'ident':
+        if self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == '33' or self.lookAheadToken[0] == '31' or self.lookAheadToken[0] == 'string':
+            if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident' or self.lookAheadToken[0] == '31':
+                if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'ident':
                     self.SimbolToken()
                 elif self.lookAheadToken[0] == '31':
                     self.move('31')
@@ -214,7 +214,7 @@ class Parser:
 
     def SimbolToken(self):
         IdentName, StringValue = '', ''
-        if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'char':
+        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string':
             if self.lookAheadToken[0] == 'string':
                 StringValue = self.String(StringValue)
             elif self.lookAheadToken[0] == 'char':
@@ -229,10 +229,10 @@ class Parser:
 
     def CharSet(self):
         IdentName, StringValue = '', ''
-        if self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'charinterval' or self.lookAheadToken[0] == 'charnumber' or self.lookAheadToken[0] == 'char':
+        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'string' or self.lookAheadToken[0] == 'charinterval' or self.lookAheadToken[0] == 'charnumber':
             if self.lookAheadToken[0] == 'string':
                 StringValue = self.String(StringValue)
-            elif self.lookAheadToken[0] == 'charinterval' or self.lookAheadToken[0] == 'charnumber' or self.lookAheadToken[0] == 'char':
+            elif self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'charinterval' or self.lookAheadToken[0] == 'charnumber':
                 self.Char()
             else:
                 self.printError()
@@ -243,7 +243,7 @@ class Parser:
             self.printError()
 
     def Char(self):
-        if self.lookAheadToken[0] == 'charnumber' or self.lookAheadToken[0] == 'char':
+        if self.lookAheadToken[0] == 'char' or self.lookAheadToken[0] == 'charnumber':
             if self.lookAheadToken[0] == 'char':
                 self.move('char')
             elif self.lookAheadToken[0] == 'charnumber':
